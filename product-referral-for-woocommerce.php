@@ -36,7 +36,30 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function __construct()
         {
-            $this->run();
+            add_action( 'admin_init', array( $this, 'check_requirements' ) );
+        }
+
+        public function check_requirements()
+        {
+            if ( !$this->is_wc_active() )
+            {
+            ?>
+                <div class="notice notice-error is-dismissible">
+                    <p><?php _e( 'In order to use Product Referral for WooCommerce make sure to install and activate <a href="https://wordpress.org/plugins/woocommerce/">WooCommerce</a>', 'prfwc' ); ?></p>
+                </div>
+            <?php
+            }
+
+            else
+                $this->run();
+        }
+
+        public function is_wc_active()
+        {
+            if ( is_plugin_active( 'woocommerce/woocommerce.php' ) )
+                return true;
+            else
+                return false;
         }
 
         /**
@@ -61,7 +84,7 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function define($name, $value)
         {
-            if (!defined($name))
+            if ( !defined( $name ) )
                 define($name, $value);
         }
 
@@ -334,4 +357,12 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
     }
 }
 
-new ProductReferralForWooCommerce();
+if ( !function_exists( 'load_prfwc' ) )
+{
+    function load_prfwc()
+    {
+        new ProductReferralForWooCommerce();
+    }
+}
+
+add_action( 'plugins_loaded', 'load_prfwc' );
