@@ -29,6 +29,63 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         private $product_referral;
 
+
+        /**
+         * @var $show_referrals_on
+         * @since 1.0
+         * @version 1.0
+         */
+        private $show_referrals_on;
+
+
+        /**
+         * @var $product_ids
+         * @since 1.0
+         * @version 1.0
+         */
+        private $product_ids = array();
+
+
+        /**
+         * @var $discount_type
+         * @since 1.0
+         * @version 1.0
+         */
+        private $discount_type;
+
+
+        /**
+         * @var $discount_value
+         * @since 1.0
+         * @version 1.0
+         */
+        private $discount_value;
+
+
+        /**
+         * @var $referral_numbers
+         * @since 1.0
+         * @version 1.0
+         */
+        private $referral_numbers;
+
+
+        /**
+         * @var $message_for_user
+         * @version 1.0
+         * @version 1.0
+         */
+        private $message_for_user;
+
+
+        /**
+         * @var $discount_on
+         * @since 1.0
+         * @version 1.0
+         */
+        private $discount_on;
+
+
         /**
          * ProductReferralForWooCommerce constructor.
          * @since 1.0
@@ -36,9 +93,15 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function __construct()
         {
-            add_action( 'admin_init', array( $this, 'check_requirements' ) );
+            $this->run();
+            //add_action( 'admin_init', array( $this, 'check_requirements' ) );
         }
 
+        /**
+         * Checks Plugin's Requirements
+         * @since 1.0
+         * @version 1.0
+         */
         public function check_requirements()
         {
             if ( !$this->is_wc_active() )
@@ -54,6 +117,13 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
                 $this->run();
         }
 
+
+        /**
+         * Checks If WooCommerce Plugin Is Active Or Not
+         * @since 1.0
+         * @version 1.0
+         * @return bool
+         */
         public function is_wc_active()
         {
             if ( is_plugin_active( 'woocommerce/woocommerce.php' ) )
@@ -69,11 +139,16 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function run()
         {
-            $this->product_referral = 'product_referral';
+            $this->load_attributes();
+
             $this->constants();
+
             $this->includes();
+
             $this->add_actions();
+
             $this->register_hooks();
+
         }
 
         /**
@@ -96,10 +171,15 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
         public function constants()
         {
             $this->define('PRFWC_VERSION', '1.0');
+
             $this->define('PRFWC_PREFIX', 'prfwc_');
+
             $this->define('PRFWC_TEXT_DOMAIN', 'prfwc');
+
             $this->define('PRFWC_PLUGIN_DIR_PATH', plugin_dir_path(__FILE__));
+
             $this->define('PRFWC_PLUGIN_DIR_URL', plugin_dir_url(__FILE__));
+
         }
 
         /**
@@ -125,16 +205,30 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
         }
 
         /**
+         * Enqueue Admin's Scripts
+         * @since 1.0
+         * @version 1.0
+         */
+        public function enqueue_scripts_admin()
+        {
+
+            wp_enqueue_script(PRFWC_TEXT_DOMAIN . '-custom-js', PRFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', '', PRFWC_VERSION);
+
+        }
+
+        /**
          * Enqueue Styles and Scripts
          * @since 1.0
          * @version 1.0
          */
         public function enqueue_scripts()
         {
+
             add_action("wp_ajax_custom_ajax", [$this, 'custom_ajax']);
+
             add_action("wp_ajax_nopriv_custom_ajax", [$this, 'custom_ajax']);
+
             wp_enqueue_style(PRFWC_TEXT_DOMAIN . '-css', PRFWC_PLUGIN_DIR_URL . 'assets/css/style.css', '', PRFWC_VERSION);
-            wp_enqueue_script(PRFWC_TEXT_DOMAIN . '-custom-js', PRFWC_PLUGIN_DIR_URL . 'assets/js/custom.js', '', PRFWC_VERSION);
         }
 
         /**
@@ -196,11 +290,11 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
                     'id'       => 'wc_product_referral_demo_section_title'
                 ),
 
-                'product_id' => array(
+                'product_ids' => array(
                     'name' => __( 'Product ID', 'prfwc' ),
-                    'type' => 'number',
-                    'desc' => __( 'Enter Product ID to apply referral, Enter 0 to apply on all products.', 'prfwc' ),
-                    'id'   => 'wc_product_referral_product_id',
+                    'type' => 'text',
+                    'desc' => __( "Enter Comma-separated Product ID's to apply referral, Enter 0 to apply on all products.", 'prfwc' ),
+                    'id'   => 'wc_product_referral_product_ids',
                     //'desc_tip' => true,
                 ),
 
@@ -300,6 +394,74 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
             return apply_filters( 'wc_'.$this->product_referral.'_settings', $settings );
         }
 
+        /**
+         * Renders Multiple Products Functionality
+         */
+        public function render_after_form()
+        {
+            ?>
+<!--            <a href="javascript:void(0)"  id="prfwc-add-btn" class="button button-primary">Add Product</a>-->
+<!--            <a href="javascript:void(0)"  id="prfwc-remove-btn" class="button button-secondary">Remove Product</a>-->
+            <?php
+        }
+
+        /**
+         * Renders logic On Product
+         * @since 1.0
+         * @version 1.0
+         */
+        public function render_logic_on_product()
+        {
+            $product_id = get_the_ID();
+
+            if ( in_array( $product_id, $this->product_ids ) )
+            {
+                echo '
+                <div class="prfwc-user-message">
+                    '. $this->get_message_for_user() . '
+                </div>
+                ';
+            }
+            else
+                return;
+        }
+
+        /**
+         * @return string
+         * @since 1.0
+         * @version 1.0
+         */
+        public function get_message_for_user()
+        {
+            global $woocommerce;
+
+            $product_id = get_the_ID();
+
+            $product = wc_get_product( $product_id );
+
+            $search = array(
+                '{referral_numbers}',
+                '{discount_value}',
+                '{discount_type}',
+                '{referral_link}',
+                '{original_price}',
+                '{discounted_price}'
+            );
+
+            $symbol = $this->discount_type == 'flat' ? get_woocommerce_currency_symbol() : '%';
+
+            $replace = array(
+                $this->referral_numbers,
+                $this->discount_value . ' ' . $symbol,
+                $this->discount_type,
+                prfwc_get_referral_link(),
+                $product->get_price() . get_woocommerce_currency_symbol(),
+                prfwc_get_discount_price( $product_id ) . get_woocommerce_currency_symbol()
+            );
+
+            return str_replace( $search, $replace, $this->message_for_user );
+        }
+
 
         /**
          * Add Actions
@@ -308,7 +470,11 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function add_actions()
         {
-            add_action('init', [$this, 'enqueue_scripts']);
+            //Admin enqueue
+            add_action('admin_enqueue_scripts', array( $this, 'enqueue_scripts_admin' ) );
+
+            //Enqueue Front end
+            add_action('init', array( $this, 'enqueue_scripts' ) );
 
             //Add Settings Tab
             add_filter( 'woocommerce_settings_tabs_array', array( $this, 'add_product_referral_tab' ), 50 );
@@ -319,6 +485,11 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
             //Update Settings
             add_action( 'woocommerce_update_options_' . $this->product_referral, array( $this, 'update_product_referral_settings') );
 
+            //Render after form
+            add_action( 'woocommerce_after_settings_product_referral', array( $this, 'render_after_form' ) );
+
+            //Applying logic on product
+            add_action( $this->show_referrals_on, array( $this, 'render_logic_on_product' ) );
         }
 
         /**
@@ -333,6 +504,30 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
             register_deactivation_hook( __FILE__, [$this, 'deactivate'] );
 
             register_uninstall_hook(__FILE__, 'prfwc_uninstall');
+        }
+
+        /**
+         * Loads Attributs
+         * @since 1.0
+         * @version 1.0
+         */
+        public function load_attributes()
+        {
+            $this->product_referral = 'product_referral';
+
+            $this->show_referrals_on = get_option( 'wc_product_referral_show_referral_on' );
+
+            $this->product_ids = explode( ',', get_option( 'wc_product_referral_product_ids' ) );
+
+            $this->discount_type = get_option( 'wc_product_referral_discount_type' );
+
+            $this->discount_value  = get_option( 'wc_product_referral_discount_value' );
+
+            $this->discount_on = get_option( 'wc_product_referral_discount_on' );
+
+            $this->referral_numbers = get_option( 'wc_product_referral_referral_numbers' );
+
+            $this->message_for_user = get_option( 'wc_product_referral_message_for_user' );
         }
 
         /**
@@ -357,12 +552,19 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
     }
 }
 
-if ( !function_exists( 'load_prfwc' ) )
-{
+/**
+ * Load Plugin
+ * @since 1.0
+ * @version 1.0
+ */
+
+if ( !function_exists( 'load_prfwc' ) ):
+
     function load_prfwc()
     {
         new ProductReferralForWooCommerce();
     }
-}
+
+endif;
 
 add_action( 'plugins_loaded', 'load_prfwc' );
