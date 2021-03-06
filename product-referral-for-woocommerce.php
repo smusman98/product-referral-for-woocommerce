@@ -139,11 +139,12 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
          */
         public function run()
         {
-            $this->load_attributes();
 
             $this->constants();
 
             $this->includes();
+
+            $this->load_attributes();
 
             $this->add_actions();
 
@@ -490,6 +491,12 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
 
             //Applying logic on product
             add_action( $this->show_referrals_on, array( $this, 'render_logic_on_product' ) );
+
+            //Check visitor if referred
+            add_action( 'woocommerce_after_main_content', 'prfwc_if_referred' );
+
+            //Applies discount on product
+            add_action( 'woocommerce_after_main_content', 'prfwc_apply_discount' );
         }
 
         /**
@@ -515,19 +522,19 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
         {
             $this->product_referral = 'product_referral';
 
-            $this->show_referrals_on = get_option( 'wc_product_referral_show_referral_on' );
+            $this->show_referrals_on = prfwc_show_referrals_on();
 
-            $this->product_ids = explode( ',', get_option( 'wc_product_referral_product_ids' ) );
+            $this->product_ids = prfwc_get_product_ids();
 
-            $this->discount_type = get_option( 'wc_product_referral_discount_type' );
+            $this->discount_type = prfwc_get_discount_type();
 
-            $this->discount_value  = get_option( 'wc_product_referral_discount_value' );
+            $this->discount_value  = prfwc_get_discount_value();
 
-            $this->discount_on = get_option( 'wc_product_referral_discount_on' );
+            $this->discount_on = prfwc_get_discount_on();
 
-            $this->referral_numbers = get_option( 'wc_product_referral_referral_numbers' );
+            $this->referral_numbers = prfwc_get_referral_numbers();
 
-            $this->message_for_user = get_option( 'wc_product_referral_message_for_user' );
+            $this->message_for_user = prfwc_get_message_for_user();
         }
 
         /**
