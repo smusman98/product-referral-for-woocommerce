@@ -306,7 +306,7 @@ if ( !function_exists( 'prfwc_if_referred' ) ):
                     }
                     else
                     {
-                        wc_add_notice( 'No Such Referee', 'error' );
+                        wc_add_notice( __( 'No Such Referee', 'prfwc' ) , 'error' );
                     }
                 }
             }
@@ -323,9 +323,15 @@ endif;
  */
 if( !function_exists( 'prfwc_apply_discount' ) ):
 
-    function prfwc_apply_discount( $product_id = '', $user_id = '' )
-    {
-        $product_id = empty( $product_id ) ? get_the_ID() : $product_id;
+    function prfwc_apply_discount( $price_html, $product ) {
+
+        // Only front end
+        if ( is_admin() ) return $price_html;
+
+        // If price ain't null
+        if ( '' === $product->get_price() ) return $price_html;
+
+        $product_id =  get_the_ID();
 
         $user_id = empty( $user_id ) ? get_current_user_id() : $user_id;
 
@@ -335,13 +341,77 @@ if( !function_exists( 'prfwc_apply_discount' ) ):
 
         $meta_key = 'prfwc_ref_id_' . $user_id . '_discount_' . prfwc_get_discount_type();
 
+        $discount_price = prfwc_get_discount_price( $product_id );
+
         $product_data = get_post_meta( $product_id, $meta_key, true );
 
         if ( in_array( $product_id, $product_ids ) )
         {
             if ( count( $product_data ) >= $required_ref  )
             {
-                die('yay');
+
+                wc_add_notice( __( "Referral Completed, You'll be charged discounted.", "prfwc" ), 'success', array( 'id'   =>  'prfwc-success-notification' ) );
+
+                $original_price = wc_get_price_to_display( $product );
+
+                $price_html = wc_price( $discount_price );
+
+            }
+        }
+
+
+        return $price_html;
+
+    }
+endif;
+
+
+
+/**
+ * Applies Discount On Product
+ * @return false|string[]
+ * @since 1.0
+ * @version 1.0
+ */
+if( !function_exists( 'prfwc_apply_discount_checkout' ) ):
+
+    function prfwc_apply_discount_checkout( $cart )
+    {
+        //Only on front end
+        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
+
+        if ( did_action( 'woocommerce_before_calculate_totals' ) >= 2 ) return;
+
+        // If user ain't logged in don't
+        if ( !is_user_logged_in() ) return;
+
+        $user_id = get_current_user_id();
+
+        $product_ids = prfwc_get_product_ids();
+
+        $required_ref = prfwc_get_referral_numbers();
+
+        $meta_key = 'prfwc_ref_id_' . $user_id . '_discount_' . prfwc_get_discount_type();
+
+        // Apply discount through loop
+        foreach ( $cart->get_cart() as $cart_item_key => $cart_item )
+        {
+            $product = $cart_item['data'];
+
+            $price = $product->get_price();
+
+            $product_id = $product->get_id();
+
+            $discount_price = prfwc_get_discount_price( $product_id );
+
+            $product_data = get_post_meta($product_id, $meta_key, true);
+
+            if ( in_array( $product_id, $product_ids ) )
+            {
+                if ( count( $product_data ) >= $required_ref )
+                {
+                    $cart_item['data']->set_price( $discount_price );
+                }
             }
         }
     }

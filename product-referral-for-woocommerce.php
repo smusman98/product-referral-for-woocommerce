@@ -496,7 +496,11 @@ if( !class_exists('ProductReferralForWooCommerce') ) {
             add_action( 'woocommerce_after_main_content', 'prfwc_if_referred' );
 
             //Applies discount on product
-            add_action( 'woocommerce_after_main_content', 'prfwc_apply_discount' );
+            add_filter( 'woocommerce_get_price_html', 'prfwc_apply_discount', 10, 2 );
+
+            //Apply discount on cart and checkout
+            add_action( 'woocommerce_before_calculate_totals', 'prfwc_apply_discount_checkout', 10 );
+
         }
 
         /**
