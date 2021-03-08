@@ -273,7 +273,7 @@ if ( !function_exists( 'prfwc_if_referred' ) ):
 
             if ( isset( $_GET['ref_id'] ) && in_array( $product_id, $product_ids ) )
             {
-                $ref_id = $_GET['ref_id'];
+                $ref_id = sanitize_text_field( $_GET['ref_id'] );
 
                 if ( $user_id != $ref_id )
                 {
@@ -324,6 +324,8 @@ endif;
 if( !function_exists( 'prfwc_apply_discount' ) ):
 
     function prfwc_apply_discount( $price_html, $product ) {
+
+        if( !is_user_logged_in() ) return $price_html;
 
         // Only front end
         if ( is_admin() ) return $price_html;
